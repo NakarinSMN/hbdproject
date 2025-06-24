@@ -9,10 +9,10 @@ const kanit = Kanit({
 });
 
 export const metadata: Metadata = {
-  title: "ระบบรักษาความปลอดภัย",
-  description: "ระบบเข้าสู่ระบบด้วยรหัสผ่าน",
+  title: "HBD TO YOU",
+  description: "HBD TO YOU",
   icons: {
-    icon: "/window.svg"
+    icon: "/cake-svgrepo.svg"
   }
 };
 

@@ -14,7 +14,7 @@ export default function Home() {
   const [showPassword, setShowPassword] = useState(false);
   const [confetti, setConfetti] = useState<Array<{id: number, x: number, y: number, color: string, rotation: number, size: number, speed: number}>>([]);
   const [mainConfetti, setMainConfetti] = useState<Array<{id: number, x: number, y: number, color: string, rotation: number, size: number, speed: number}>>([]);
-  const correctPassword = "240444";
+  const correctPassword = "280943";
   const [currentImage, setCurrentImage] = useState(0);
 
   // เพิ่มรายชื่อไฟล์รูปจาก public แบบ manual (หรือจะใช้ dynamic import ก็ได้ แต่ Next.js ไม่รองรับ fs ในฝั่ง client)
