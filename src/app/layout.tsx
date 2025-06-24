@@ -11,6 +11,9 @@ const kanit = Kanit({
 export const metadata: Metadata = {
   title: "ระบบรักษาความปลอดภัย",
   description: "ระบบเข้าสู่ระบบด้วยรหัสผ่าน",
+  icons: {
+    icon: "/window.svg"
+  }
 };
 
 export default function RootLayout({

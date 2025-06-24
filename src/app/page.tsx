@@ -242,12 +242,6 @@ export default function Home() {
               </button>
             </form>
 
-            {/* Password Hint */}
-            <div className="text-center">
-              <p className="text-xs sm:text-sm text-gray-400 font-kanit">
-                รหัสผ่าน: <span className="font-mono bg-gray-100 px-2 sm:px-3 py-1 rounded-lg text-gray-600">240444</span>
-              </p>
-            </div>
           </div>
         </div>
       )}
