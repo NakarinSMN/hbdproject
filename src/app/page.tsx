@@ -19,10 +19,10 @@ export default function Home() {
 
   // เพิ่มรายชื่อไฟล์รูปจาก public แบบ manual (หรือจะใช้ dynamic import ก็ได้ แต่ Next.js ไม่รองรับ fs ในฝั่ง client)
   const publicImages = [
-    '/Artboard1.png',
-    '/1349195.png',
-    '/1338843.png',
-    '/2025-05-01_21.34.42.png',
+    '/meen01.png',
+    '/meen02.png',
+    '/meen03.png',
+    '/meen04.png',
   ];
 
   // Lofi images สำหรับ stack
