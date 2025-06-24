@@ -1,10 +1,9 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect } from "react";
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faLock, faEye, faEyeSlash, faShieldAlt, faCheckCircle, faStar, faArrowDown, faHeart, faEnvelope } from '@fortawesome/free-solid-svg-icons';
+import { faLock, faEye, faEyeSlash, faHeart } from '@fortawesome/free-solid-svg-icons';
 import Image from 'next/image';
-import { appConfig } from './app-config';
 import React from "react";
 
 export default function Home() {
@@ -15,12 +14,8 @@ export default function Home() {
   const [showPassword, setShowPassword] = useState(false);
   const [confetti, setConfetti] = useState<Array<{id: number, x: number, y: number, color: string, rotation: number, size: number, speed: number}>>([]);
   const [mainConfetti, setMainConfetti] = useState<Array<{id: number, x: number, y: number, color: string, rotation: number, size: number, speed: number}>>([]);
-  const [visibleImages, setVisibleImages] = useState<Set<number>>(new Set());
   const correctPassword = "240444";
   const [currentImage, setCurrentImage] = useState(0);
-
-  // Lofi wallpapers data
-  const lofiImages = appConfig.gallery.images;
 
   // เพิ่มรายชื่อไฟล์รูปจาก public แบบ manual (หรือจะใช้ dynamic import ก็ได้ แต่ Next.js ไม่รองรับ fs ในฝั่ง client)
   const publicImages = [
@@ -37,47 +32,6 @@ export default function Home() {
     title: `รูปที่ ${idx + 1}`,
     description: `ภาพจาก public (${src})`,
   }));
-
-  const dragStartX = useRef<number | null>(null);
-  const dragging = useRef(false);
-
-  // gesture handlers
-  const handleDragStart = (e: React.TouchEvent | React.MouseEvent) => {
-    dragging.current = true;
-    if ('touches' in e) {
-      dragStartX.current = e.touches[0].clientX;
-    } else {
-      dragStartX.current = (e as React.MouseEvent).clientX;
-    }
-  };
-  const handleDragMove = (e: React.TouchEvent | React.MouseEvent) => {
-    if (!dragging.current || dragStartX.current === null) return;
-    let clientX = 0;
-    if ('touches' in e) {
-      if (e.touches.length > 0) clientX = e.touches[0].clientX;
-    } else {
-      clientX = (e as React.MouseEvent).clientX;
-    }
-    // ไม่ต้องทำอะไรระหว่างลาก (optionally: สามารถขยับ preview ได้)
-  };
-  const handleDragEnd = (e: React.TouchEvent | React.MouseEvent) => {
-    if (!dragging.current || dragStartX.current === null) return;
-    let clientX = 0;
-    if ('changedTouches' in e) {
-      clientX = e.changedTouches[0].clientX;
-    } else {
-      clientX = (e as React.MouseEvent).clientX;
-    }
-    const diff = clientX - dragStartX.current;
-    const threshold = 40; // px
-    if (diff > threshold) {
-      handleChangeImage(false); // ปัดขวา = ย้อนกลับ
-    } else if (diff < -threshold) {
-      handleChangeImage(true); // ปัดซ้าย = ถัดไป
-    }
-    dragging.current = false;
-    dragStartX.current = null;
-  };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -128,10 +82,6 @@ export default function Home() {
     
     setMainConfetti(newConfetti);
   };
-
-  useEffect(() => {
-    setVisibleImages(new Set(appConfig.gallery.images.map((_, idx) => idx)));
-  }, []);
 
   // Initialize main confetti when entering main page
   useEffect(() => {
@@ -204,25 +154,6 @@ export default function Home() {
       return () => clearInterval(interval);
     }
   }, [showSuccess]);
-
-  // ฟังก์ชันเปลี่ยนรูปพร้อม fade
-  const handleChangeImage = (next: boolean) => {
-    setCurrentImage((prev) => {
-      if (next) return (prev + lofiImagesStack.length) % lofiImagesStack.length;
-      return (prev - 1 + lofiImagesStack.length) % lofiImagesStack.length;
-    });
-  };
-
-  // เพิ่ม CSS inline สำหรับแอนิเมชัน
-  const bounceKeyframes = {
-    animation: 'bounce 1s infinite',
-  };
-  const rotateKeyframes = {
-    animation: 'spin 2s linear infinite',
-  };
-  const breathKeyframes = {
-    animation: 'breath 2.5s ease-in-out infinite',
-  };
 
   // TimelineBar Component
   function TimelineBar({ years, activeIndex, onChange }: { years: string[], activeIndex: number, onChange: (idx: number) => void }) {
@@ -399,7 +330,6 @@ export default function Home() {
               {/* Stack images */}
               <div className="relative w-72 h-72 flex items-center justify-center">
                 {lofiImagesStack.map((img, idx) => {
-                  const z = lofiImagesStack.length - Math.abs(idx - currentImage);
                   const isActive = idx === currentImage;
                   return (
                     <div
