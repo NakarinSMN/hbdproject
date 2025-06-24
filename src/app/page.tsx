@@ -11,6 +11,7 @@ export default function Home() {
   const [error, setError] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [confetti, setConfetti] = useState<Array<{id: number, x: number, y: number, color: string, rotation: number, size: number, speed: number}>>([]);
+  const [mainConfetti, setMainConfetti] = useState<Array<{id: number, x: number, y: number, color: string, rotation: number, size: number, speed: number}>>([]);
   const [visibleImages, setVisibleImages] = useState<Set<number>>(new Set());
   const correctPassword = "240444";
 
@@ -91,9 +92,68 @@ export default function Home() {
     setConfetti(newConfetti);
   };
 
+  const createMainConfetti = () => {
+    const colors = ['#FF6B6B', '#4ECDC4', '#45B7D1', '#96CEB4', '#FFEAA7', '#DDA0DD', '#98D8C8', '#F7DC6F'];
+    const newConfetti = [];
+    
+    for (let i = 0; i < 50; i++) {
+      newConfetti.push({
+        id: i,
+        x: Math.random() * 100,
+        y: -10,
+        color: colors[Math.floor(Math.random() * colors.length)],
+        rotation: Math.random() * 360,
+        size: Math.random() * 4 + 2,
+        speed: Math.random() * 1.5 + 0.5
+      });
+    }
+    
+    setMainConfetti(newConfetti);
+  };
+
   useEffect(() => {
     setVisibleImages(new Set(lofiImages.map(img => img.id)));
   }, []);
+
+  // Initialize main confetti when entering main page
+  useEffect(() => {
+    if (!showPopup && !showSuccess) {
+      createMainConfetti();
+    }
+  }, [showPopup, showSuccess]);
+
+  // Main confetti animation
+  useEffect(() => {
+    if (!showPopup && !showSuccess) {
+      const interval = setInterval(() => {
+        setMainConfetti(prev => {
+          const updated = prev.map(conf => ({
+            ...conf,
+            y: conf.y + conf.speed,
+            x: conf.x + (Math.random() - 0.5) * 0.5,
+            rotation: conf.rotation + 3
+          })).filter(conf => conf.y < 110);
+          
+          if (Math.random() < 0.1 && updated.length < 40) {
+            const colors = ['#FF6B6B', '#4ECDC4', '#45B7D1', '#96CEB4', '#FFEAA7', '#DDA0DD', '#98D8C8', '#F7DC6F'];
+            updated.push({
+              id: Date.now() + Math.random(),
+              x: Math.random() * 100,
+              y: -10,
+              color: colors[Math.floor(Math.random() * colors.length)],
+              rotation: Math.random() * 360,
+              size: Math.random() * 4 + 2,
+              speed: Math.random() * 1.5 + 0.5
+            });
+          }
+          
+          return updated;
+        });
+      }, 80);
+
+      return () => clearInterval(interval);
+    }
+  }, [showPopup, showSuccess]);
 
   useEffect(() => {
     if (showSuccess) {
@@ -254,6 +314,7 @@ export default function Home() {
                     setShowPopup(true);
                     setPassword("");
                     setConfetti([]);
+                    setMainConfetti([]);
                   }}
                   className="bg-gray-500 text-white font-semibold py-3 sm:py-5 px-6 sm:px-10 rounded-xl hover:bg-gray-600 focus:outline-none focus:ring-4 focus:ring-gray-300 focus:ring-opacity-50 transform transition-all duration-300 hover:scale-105 active:scale-95 font-kanit shadow-lg hover:shadow-xl text-base sm:text-lg"
                 >
@@ -276,9 +337,28 @@ export default function Home() {
 
       {/* Main Content - Lofi Gallery */}
       {!showPopup && !showSuccess && (
-        <div className="min-h-screen bg-gradient-to-br from-gray-50 to-white px-2">
+        <div className="min-h-screen bg-gradient-to-br from-gray-50 to-white px-2 relative overflow-hidden">
+          {/* Main Confetti */}
+          {mainConfetti.map((conf) => (
+            <div
+              key={conf.id}
+              className="absolute pointer-events-none"
+              style={{
+                left: `${conf.x}%`,
+                top: `${conf.y}%`,
+                backgroundColor: conf.color,
+                width: `${conf.size}px`,
+                height: `${conf.size}px`,
+                borderRadius: '50%',
+                transform: `rotate(${conf.rotation}deg)`,
+                boxShadow: `0 0 6px ${conf.color}`,
+                zIndex: 10
+              }}
+            />
+          ))}
+
           {/* Header */}
-          <header className="bg-white border-b border-gray-200 sticky top-0 z-40 shadow-sm rounded-b-2xl">
+          <header className="bg-white border-b border-gray-200 sticky top-0 z-40 shadow-sm rounded-b-2xl relative">
             <div className="max-w-7xl mx-auto px-2 sm:px-4 lg:px-8">
               <div className="flex justify-between items-center py-4 sm:py-6">
                 <div className="flex items-center">
