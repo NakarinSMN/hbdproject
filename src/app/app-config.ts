@@ -1,4 +1,4 @@
-import { faWifi, faPlane, faMoon, faVolumeUp, faSun, faBatteryFull, faSignal, faBolt, faBell, faCamera, faMusic, faLock, faEye, faEyeSlash, faShieldAlt, faCheckCircle, faStar, faArrowDown, faHeart } from '@fortawesome/free-solid-svg-icons';
+import { faWifi, faPlane, faSun, faBatteryFull, faSignal, faBolt, faBell, faCamera, faMusic, faLock, faEye, faEyeSlash, faShieldAlt, faCheckCircle, faStar } from '@fortawesome/free-solid-svg-icons';
 import { faBluetooth } from '@fortawesome/free-brands-svg-icons';
 
 export const appConfig = {

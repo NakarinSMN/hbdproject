@@ -3,6 +3,8 @@
 import { useState, useEffect } from "react";
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faLock, faEye, faEyeSlash, faShieldAlt, faCheckCircle, faStar, faArrowDown, faHeart } from '@fortawesome/free-solid-svg-icons';
+import Image from 'next/image';
+import { appConfig } from './app-config';
 
 export default function Home() {
   const [showPopup, setShowPopup] = useState(true);
@@ -112,7 +114,7 @@ export default function Home() {
   };
 
   useEffect(() => {
-    setVisibleImages(new Set(lofiImages.map(img => img.id)));
+    setVisibleImages(new Set(appConfig.gallery.images.map((_, idx) => idx)));
   }, []);
 
   // Initialize main confetti when entering main page
@@ -405,25 +407,11 @@ export default function Home() {
                 >
                   <div className="bg-white rounded-2xl overflow-hidden shadow-lg hover:shadow-2xl transition-all duration-300 hover:scale-105 group border border-gray-100 flex flex-col">
                     <div className="relative h-48 sm:h-64 overflow-hidden bg-blue-100 border-b border-blue-200 flex items-center justify-center">
-                      <img
+                      <Image
                         src={image.src}
                         alt={image.title}
+                        fill
                         className="absolute inset-0 w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
-                        onError={(e) => {
-                          console.error('Error loading image:', image.src);
-                          console.log('Falling back to vercel.svg');
-                          e.currentTarget.src = "/vercel.svg";
-                        }}
-                        onLoad={(e) => {
-                          console.log('Image loaded successfully:', image.src);
-                          const img = e.target as HTMLImageElement;
-                          console.log('Image dimensions:', img.naturalWidth, 'x', img.naturalHeight);
-                          console.log('Image display style:', img.style.display);
-                          console.log('Image visibility:', img.style.visibility);
-                          console.log('Image opacity:', img.style.opacity);
-                          console.log('Container dimensions:', img.parentElement?.offsetWidth, 'x', img.parentElement?.offsetHeight);
-                          console.log('Image computed style:', window.getComputedStyle(img).width, 'x', window.getComputedStyle(img).height);
-                        }}
                         loading="lazy"
                       />
                       <div className="absolute inset-0 bg-gradient-to-t from-blue-100/50 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
