@@ -1,10 +1,11 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faLock, faEye, faEyeSlash, faShieldAlt, faCheckCircle, faStar, faArrowDown, faHeart } from '@fortawesome/free-solid-svg-icons';
+import { faLock, faEye, faEyeSlash, faShieldAlt, faCheckCircle, faStar, faArrowDown, faHeart, faEnvelope } from '@fortawesome/free-solid-svg-icons';
 import Image from 'next/image';
 import { appConfig } from './app-config';
+import React from "react";
 
 export default function Home() {
   const [showPopup, setShowPopup] = useState(true);
@@ -16,52 +17,67 @@ export default function Home() {
   const [mainConfetti, setMainConfetti] = useState<Array<{id: number, x: number, y: number, color: string, rotation: number, size: number, speed: number}>>([]);
   const [visibleImages, setVisibleImages] = useState<Set<number>>(new Set());
   const correctPassword = "240444";
+  const [currentImage, setCurrentImage] = useState(0);
 
   // Lofi wallpapers data
-  const lofiImages = [
-    {
-      id: 1,
-      src: "/Artboard1.jpg",
-      title: "Lofi Night City",
-      description: "เมืองยามค่ำคืนที่เงียบสงบ พร้อมแสงไฟที่สวยงาม",
-      direction: "right"
-    },
-    {
-      id: 2,
-      src: "/Artboard1.jpg",
-      title: "Cozy Room Vibes",
-      description: "ห้องนอนที่อบอุ่น พร้อมบรรยากาศที่ผ่อนคลาย",
-      direction: "right"
-    },
-    {
-      id: 3,
-      src: "/Artboard1.jpg",
-      title: "Rainy Window",
-      description: "หน้าต่างยามฝนตก พร้อมเสียงฝนที่ผ่อนคลาย",
-      direction: "right"
-    },
-    {
-      id: 4,
-      src: "/Artboard1.jpg",
-      title: "Sunset Dreams",
-      description: "พระอาทิตย์ตกดิน พร้อมบรรยากาศที่โรแมนติก",
-      direction: "right"
-    },
-    {
-      id: 5,
-      src: "/Artboard1.jpg",
-      title: "Study Session",
-      description: "โต๊ะเรียนที่เรียบง่าย พร้อมแสงไฟที่อบอุ่น",
-      direction: "right"
-    },
-    {
-      id: 6,
-      src: "/Artboard1.jpg",
-      title: "Cafe Corner",
-      description: "มุมกาแฟที่สวยงาม พร้อมบรรยากาศที่ผ่อนคลาย",
-      direction: "right"
-    }
+  const lofiImages = appConfig.gallery.images;
+
+  // เพิ่มรายชื่อไฟล์รูปจาก public แบบ manual (หรือจะใช้ dynamic import ก็ได้ แต่ Next.js ไม่รองรับ fs ในฝั่ง client)
+  const publicImages = [
+    '/Artboard1.jpg',
+    '/Artboard1.png',
+    '/1349195.png',
+    '/1338843.png',
+    '/2025-05-01_21.34.42.png',
   ];
+
+  // Lofi images สำหรับ stack
+  const lofiImagesStack = publicImages.map((src, idx) => ({
+    src,
+    title: `รูปที่ ${idx + 1}`,
+    description: `ภาพจาก public (${src})`,
+  }));
+
+  const dragStartX = useRef<number | null>(null);
+  const dragging = useRef(false);
+
+  // gesture handlers
+  const handleDragStart = (e: React.TouchEvent | React.MouseEvent) => {
+    dragging.current = true;
+    if ('touches' in e) {
+      dragStartX.current = e.touches[0].clientX;
+    } else {
+      dragStartX.current = (e as React.MouseEvent).clientX;
+    }
+  };
+  const handleDragMove = (e: React.TouchEvent | React.MouseEvent) => {
+    if (!dragging.current || dragStartX.current === null) return;
+    let clientX = 0;
+    if ('touches' in e) {
+      if (e.touches.length > 0) clientX = e.touches[0].clientX;
+    } else {
+      clientX = (e as React.MouseEvent).clientX;
+    }
+    // ไม่ต้องทำอะไรระหว่างลาก (optionally: สามารถขยับ preview ได้)
+  };
+  const handleDragEnd = (e: React.TouchEvent | React.MouseEvent) => {
+    if (!dragging.current || dragStartX.current === null) return;
+    let clientX = 0;
+    if ('changedTouches' in e) {
+      clientX = e.changedTouches[0].clientX;
+    } else {
+      clientX = (e as React.MouseEvent).clientX;
+    }
+    const diff = clientX - dragStartX.current;
+    const threshold = 40; // px
+    if (diff > threshold) {
+      handleChangeImage(false); // ปัดขวา = ย้อนกลับ
+    } else if (diff < -threshold) {
+      handleChangeImage(true); // ปัดซ้าย = ถัดไป
+    }
+    dragging.current = false;
+    dragStartX.current = null;
+  };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -87,7 +103,7 @@ export default function Home() {
         color: colors[Math.floor(Math.random() * colors.length)],
         rotation: Math.random() * 360,
         size: Math.random() * 6 + 3,
-        speed: Math.random() * 2 + 1
+        speed: Math.random() * 1 + 0.5
       });
     }
     
@@ -163,8 +179,8 @@ export default function Home() {
         setConfetti(prev => {
           const updated = prev.map(conf => ({
             ...conf,
-            y: conf.y + conf.speed,
-            x: conf.x + (Math.random() - 0.5) * 1,
+            y: conf.y + conf.speed * 0.5,
+            x: conf.x + (Math.random() - 0.5) * 0.5,
             rotation: conf.rotation + 5
           })).filter(conf => conf.y < 110);
           
@@ -177,7 +193,7 @@ export default function Home() {
               color: colors[Math.floor(Math.random() * colors.length)],
               rotation: Math.random() * 360,
               size: Math.random() * 6 + 3,
-              speed: Math.random() * 2 + 1
+              speed: Math.random() * 1 + 0.5
             });
           }
           
@@ -189,265 +205,244 @@ export default function Home() {
     }
   }, [showSuccess]);
 
-  return (
-    <>
-      {showPopup && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-gradient-to-br from-gray-50 to-white px-2">
-          <div className="relative bg-white rounded-3xl shadow-2xl p-6 sm:p-8 md:p-10 flex flex-col gap-8 w-full max-w-xs sm:max-w-md md:max-w-lg lg:max-w-xl mx-auto border border-gray-100">
-            {/* Header */}
-            <div className="text-center">
-              <div className="inline-flex items-center justify-center w-16 h-16 sm:w-20 sm:h-20 bg-gradient-to-r from-gray-100 to-gray-200 rounded-full mb-4 sm:mb-6">
-                <FontAwesomeIcon icon={faShieldAlt} className="text-gray-600 text-2xl sm:text-3xl" />
-              </div>
-              <h2 className="text-2xl sm:text-3xl font-bold text-gray-800 mb-2 sm:mb-3 font-kanit">ระบบรักษาความปลอดภัย</h2>
-              <p className="text-gray-500 text-sm sm:text-base font-kanit">กรุณาใส่รหัสผ่านเพื่อเข้าสู่ระบบ</p>
-            </div>
+  // ฟังก์ชันเปลี่ยนรูปพร้อม fade
+  const handleChangeImage = (next: boolean) => {
+    setCurrentImage((prev) => {
+      if (next) return (prev + lofiImagesStack.length) % lofiImagesStack.length;
+      return (prev - 1 + lofiImagesStack.length) % lofiImagesStack.length;
+    });
+  };
 
-            {/* Form */}
-            <form onSubmit={handleSubmit} className="space-y-4 sm:space-y-6">
-              <div className="relative">
-                <div className="absolute inset-y-0 left-0 pl-3 sm:pl-4 flex items-center pointer-events-none">
-                  <FontAwesomeIcon icon={faLock} className="text-gray-400 text-base sm:text-lg" />
-                </div>
-                <input
-                  type={showPassword ? "text" : "password"}
-                  className="w-full pl-10 sm:pl-12 pr-12 sm:pr-14 py-3 sm:py-4 border-2 border-gray-200 rounded-xl focus:outline-none focus:border-gray-400 focus:ring-4 focus:ring-gray-100 transition-all duration-300 text-gray-700 placeholder-gray-400 font-kanit text-base sm:text-lg"
-                  value={password}
-                  onChange={e => setPassword(e.target.value)}
-                  placeholder="รหัสผ่าน"
-                  autoFocus
-                />
+  // เพิ่ม CSS inline สำหรับแอนิเมชัน
+  const bounceKeyframes = {
+    animation: 'bounce 1s infinite',
+  };
+  const rotateKeyframes = {
+    animation: 'spin 2s linear infinite',
+  };
+  const breathKeyframes = {
+    animation: 'breath 2.5s ease-in-out infinite',
+  };
+
+  // TimelineBar Component
+  function TimelineBar({ years, activeIndex, onChange }: { years: string[], activeIndex: number, onChange: (idx: number) => void }) {
+    return (
+      <div className="w-full flex flex-col items-center my-8">
+        <div className="relative w-full max-w-xs mx-auto px-2">
+          {/* Bar */}
+          <div className="absolute left-0 right-0 top-4.5 h-2 -translate-y-1/2 bg-blue-300 rounded-full" style={{zIndex:1}} />
+          <div className="flex justify-between relative z-10">
+            {years.map((year, idx) => (
+              <div key={year} className="flex flex-col items-center w-1/4">
+                {/* Node */}
                 <button
-                  type="button"
-                  className="absolute inset-y-0 right-0 pr-3 sm:pr-4 flex items-center"
-                  onClick={() => setShowPassword(!showPassword)}
+                  className={`w-9 h-9 rounded-full flex items-center justify-center border-4 ${idx === activeIndex ? 'border-blue-600 bg-white shadow-lg' : 'border-blue-200 bg-white shadow'} transition-all duration-200`}
+                  style={{marginBottom: 8, zIndex: 2}}
+                  onClick={() => onChange(idx)}
                 >
-                  <FontAwesomeIcon 
-                    icon={showPassword ? faEyeSlash : faEye} 
-                    className="text-gray-400 hover:text-gray-600 transition-colors duration-200 text-base sm:text-lg" 
-                  />
+                  <div className={`w-5 h-5 rounded-full ${idx === activeIndex ? 'bg-blue-600' : 'bg-blue-200'}`}></div>
                 </button>
+                {/* Label (Bubble) */}
               </div>
+            ))}
+          </div>
+        </div>
+      </div>
+    );
+  }
 
+  return (
+    <div className="min-h-screen flex flex-col items-center justify-center bg-[#f7f7f8] relative overflow-hidden">
+      {/* Confetti */}
+      <div className="pointer-events-none absolute inset-0 z-10">
+        {showSuccess
+          ? confetti.map((conf) => (
+              <div
+                key={conf.id}
+                style={{
+                  position: 'absolute',
+                  left: `${conf.x}%`,
+                  top: `${conf.y}%`,
+                  width: conf.size * 2,
+                  height: conf.size * 2,
+                  background: conf.color,
+                  borderRadius: '50%',
+                  transform: `rotate(${conf.rotation}deg)`
+                }}
+                className="animate-confetti shadow-md opacity-80"
+              />
+            ))
+          : mainConfetti.map((conf) => (
+              <div
+                key={conf.id}
+                style={{
+                  position: 'absolute',
+                  left: `${conf.x}%`,
+                  top: `${conf.y}%`,
+                  width: conf.size * 2,
+                  height: conf.size * 2,
+                  background: conf.color,
+                  borderRadius: '50%',
+                  transform: `rotate(${conf.rotation}deg)`
+                }}
+                className="animate-confetti shadow-md opacity-80"
+              />
+            ))}
+      </div>
+      {/* Popup รหัสผ่าน */}
+      {showPopup && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#f1f3f6] px-2 min-h-screen">
+          <div className="card-neumorph w-full max-w-sm mx-auto animate-fade-in flex flex-col items-center justify-center gap-8 p-8">
+            <h2 className="text-2xl text-[#363636] mb-6 font-kanit self-start flex items-center gap-2">
+              <FontAwesomeIcon icon={faLock} className="text-blue-600 text-xl" />
+              Secret code
+            </h2>
+            <form onSubmit={handleSubmit} className="w-full flex flex-col items-center gap-8">
+              {/* Password */}
+              <div className="w-full flex flex-col items-center">
+                <div className="relative w-full flex items-center justify-center">
+                  <input
+                    type={showPassword ? "text" : "password"}
+                    className="w-full bg-white rounded-2xl shadow-[0_2px_12px_0_#e0e3ea] px-5 py-4 pr-14 text-[#23272f] font-kanit text-base focus:outline-none focus:ring-2 focus:ring-blue-200 placeholder-[#b6c3e0] transition"
+                    placeholder="*******"
+                    value={password}
+                    onChange={e => setPassword(e.target.value)}
+                    autoFocus
+                    required
+                  />
+                  <button
+                    type="button"
+                    className="absolute right-4 top-6 -translate-y-1/2 flex items-center justify-center w-9 h-9 bg-white rounded-full shadow-md"
+                    style={{boxShadow:'0 2px 8px #e0e3ea'}} 
+                    onClick={() => setShowPassword(!showPassword)}
+                    tabIndex={-1}
+                  >
+                    <FontAwesomeIcon icon={showPassword ? faEyeSlash : faEye} className="text-[#b6c3e0] text-lg" />
+                  </button>
+                </div>
+              </div>
               {error && (
-                <div className="flex items-center gap-2 sm:gap-3 p-3 sm:p-4 bg-red-50 border border-red-200 rounded-xl">
-                  <div className="w-2 sm:w-3 h-2 sm:h-3 bg-red-400 rounded-full"></div>
-                  <span className="text-red-600 text-xs sm:text-sm font-kanit">{error}</span>
+                <div className="flex items-center gap-2 p-2 bg-transparent">
+                  <span className="text-[#e11d48] text-xs font-kanit">{error}</span>
                 </div>
               )}
-
               <button
                 type="submit"
-                className="w-full bg-gradient-to-r from-gray-600 to-gray-700 text-white font-semibold py-3 sm:py-4 px-6 sm:px-8 rounded-xl hover:from-gray-700 hover:to-gray-800 focus:outline-none focus:ring-4 focus:ring-gray-300 focus:ring-offset-2 transform transition-all duration-300 hover:scale-105 active:scale-95 font-kanit text-base sm:text-lg shadow-lg hover:shadow-xl"
+                className="w-4/6 py-4 rounded-full font-bold text-lg text-white shadow-lg bg-blue-600 hover:bg-blue-700 transition"
+                style={{boxShadow:'0 8px 24px 0 #b6c3e055'}}
               >
                 เข้าสู่ระบบ
               </button>
             </form>
-
           </div>
         </div>
       )}
-
-      {/* Success Page with Confetti */}
+      {/* Success Page (HBD) */}
       {showSuccess && (
-        <div className="fixed inset-0 z-50 bg-gradient-to-br from-gray-50 to-white overflow-hidden px-2">
-          {/* Confetti */}
-          {confetti.map((conf) => (
-            <div
-              key={conf.id}
-              className="absolute"
-              style={{
-                left: `${conf.x}%`,
-                top: `${conf.y}%`,
-                backgroundColor: conf.color,
-                width: `${conf.size}px`,
-                height: `${conf.size}px`,
-                borderRadius: '50%',
-                transform: `rotate(${conf.rotation}deg)`,
-                boxShadow: `0 0 8px ${conf.color}`
-              }}
-            />
-          ))}
-          
-          {/* Success Content */}
-          <div className="flex items-center justify-center min-h-screen relative">
-            <div className="text-center animate-fade-in relative z-10 w-full max-w-xs sm:max-w-md md:max-w-lg lg:max-w-xl mx-auto bg-white/80 rounded-3xl p-6 sm:p-10 shadow-2xl">
-              {/* Success Icon */}
-              <div className="relative mb-6 sm:mb-10">
-                <div className="inline-flex items-center justify-center w-20 h-20 sm:w-36 sm:h-36 bg-gradient-to-r from-gray-100 to-gray-200 rounded-full shadow-2xl">
-                  <FontAwesomeIcon icon={faCheckCircle} className="text-gray-600 text-4xl sm:text-6xl" />
-                </div>
-                <div className="absolute -top-2 -right-2 sm:-top-4 sm:-right-4 w-6 h-6 sm:w-10 sm:h-10 bg-gray-300 rounded-full flex items-center justify-center animate-pulse">
-                  <FontAwesomeIcon icon={faStar} className="text-gray-600 text-base sm:text-lg" />
-                </div>
-              </div>
-              
-              {/* Main Text */}
-              <h1 className="text-3xl sm:text-5xl md:text-7xl font-bold mb-4 sm:mb-8 font-kanit animate-pulse-slow text-gray-800">
-                ยินดีต้อนรับ! 🎉
-              </h1>
-              <p className="text-lg sm:text-2xl mb-2 sm:mb-6 font-kanit text-gray-700">
-                เข้าสู่ระบบสำเร็จแล้ว
-              </p>
-              <p className="text-base sm:text-xl mb-4 sm:mb-10 font-kanit text-gray-500">
-                คุณสามารถใช้งานระบบได้แล้ว
-              </p>
-              
-              {/* Decorative Stars */}
-              <div className="flex justify-center gap-4 sm:gap-8 mb-6 sm:mb-10">
-                <FontAwesomeIcon icon={faStar} className="text-gray-400 text-xl sm:text-4xl animate-pulse" />
-                <FontAwesomeIcon icon={faStar} className="text-gray-400 text-xl sm:text-4xl animate-pulse" style={{animationDelay: '0.3s'}} />
-                <FontAwesomeIcon icon={faStar} className="text-gray-400 text-xl sm:text-4xl animate-pulse" style={{animationDelay: '0.6s'}} />
-                <FontAwesomeIcon icon={faStar} className="text-gray-400 text-xl sm:text-4xl animate-pulse" style={{animationDelay: '0.9s'}} />
-                <FontAwesomeIcon icon={faStar} className="text-gray-400 text-xl sm:text-4xl animate-pulse" style={{animationDelay: '1.2s'}} />
-              </div>
-              
-              {/* Action Buttons */}
-              <div className="flex flex-col sm:flex-row gap-4 sm:gap-6 justify-center">
-                <button
-                  onClick={() => {
-                    setShowSuccess(false);
-                    setShowPopup(true);
-                    setPassword("");
-                    setConfetti([]);
-                    setMainConfetti([]);
-                  }}
-                  className="bg-gray-500 text-white font-semibold py-3 sm:py-5 px-6 sm:px-10 rounded-xl hover:bg-gray-600 focus:outline-none focus:ring-4 focus:ring-gray-300 focus:ring-opacity-50 transform transition-all duration-300 hover:scale-105 active:scale-95 font-kanit shadow-lg hover:shadow-xl text-base sm:text-lg"
-                >
-                  กลับไปหน้าหลัก
-                </button>
-                <button
-                  onClick={() => {
-                    setShowSuccess(false);
-                    setConfetti([]);
-                  }}
-                  className="bg-gradient-to-r from-gray-600 to-gray-700 text-white font-semibold py-3 sm:py-5 px-8 sm:px-12 rounded-xl hover:from-gray-700 hover:to-gray-800 focus:outline-none focus:ring-4 focus:ring-gray-300 focus:ring-opacity-50 transform transition-all duration-300 hover:scale-110 active:scale-95 font-kanit shadow-lg hover:shadow-xl text-base sm:text-lg"
-                >
-                  ถัดไป →
-                </button>
-              </div>
+        <div className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-[#f1f3f6] overflow-y-auto px-2">
+          <div className="card-neumorph w-full max-w-md sm:max-w-lg md:max-w-xl lg:max-w-2xl mx-auto animate-fade-in flex flex-col items-center gap-6 mt-10 mb-6 p-8 relative">
+            <FontAwesomeIcon icon={faHeart} className="text-[#2563eb] text-4xl mb-2" />
+            <h1 className="text-3xl sm:text-4xl font-bold text-[#23272f] font-kanit">สุขสันต์วันเกิด!</h1>
+            <p className="text-base sm:text-lg text-[#23272f] text-center max-w-md font-kanit">
+            HBDคับ🎉 นิมีน 25 ขวบแล้ว ขอให้ปีนี้เป็นปีที่ดี เต็มไปด้วยความสุข ความสำเร็จ และรอยยิ้มเยอะๆค้าบบ
+            </p>
+            {/* Stack images ในหน้า HBD */}
+            <div className="relative w-50 h-60 flex items-center justify-center">
+              {lofiImagesStack.map((img, idx) => {
+                const isActive = idx === currentImage;
+                return (
+                  <div
+                    key={img.src}
+                    className={`absolute left-0 top-0 w-50 h-70 transition-all duration-1000 ease-[cubic-bezier(0.77,0,0.175,1)] ${isActive ? 'scale-100 z-30 opacity-100' : 'scale-90 z-20 opacity-60'} ${Math.abs(idx - currentImage) > 2 ? 'opacity-0' : ''}`}
+                    style={{
+                      transform: `translateX(${(idx - currentImage) * 20}px) scale(${isActive ? 1 : 0.9})`,
+                    }}
+                  >
+                    <Image
+                      src={img.src}
+                      alt={img.title}
+                      fill
+                      className="object-cover rounded-full border-4 border-white shadow-lg"
+                    />
+                  </div>
+                );
+              })}
+            </div>
+            {/* TimelineBar */}
+            <TimelineBar years={['1','2','3','4']} activeIndex={currentImage} onChange={setCurrentImage} />
+            <button
+              className="btn-neumorph mt-4 bg-[#2563eb] hover:bg-[#1746a2] text-white font-bold py-3 rounded-xl shadow-md text-lg"
+              onClick={() => { setShowSuccess(false); setShowPopup(true); setPassword(""); setConfetti([]); setMainConfetti([]); }}
+            >
+              กลับไปหน้าใส่รหัส
+            </button>
+            {/* Footer */}
+            <div className="absolute left-0  right-0 bottom-2 text-center text-xs text-[#23272f] font-kanit opacity-70">
+              Made with by YourFriend
             </div>
           </div>
         </div>
       )}
-
       {/* Main Content - Lofi Gallery */}
       {!showPopup && !showSuccess && (
-        <div className="min-h-screen bg-gradient-to-br from-gray-50 to-white px-2 relative overflow-hidden">
-          {/* Main Confetti */}
-          {mainConfetti.map((conf) => (
-            <div
-              key={conf.id}
-              className="absolute pointer-events-none"
-              style={{
-                left: `${conf.x}%`,
-                top: `${conf.y}%`,
-                backgroundColor: conf.color,
-                width: `${conf.size}px`,
-                height: `${conf.size}px`,
-                borderRadius: '50%',
-                transform: `rotate(${conf.rotation}deg)`,
-                boxShadow: `0 0 6px ${conf.color}`,
-                zIndex: 10
-              }}
-            />
-          ))}
-
-          {/* Header */}
-          <header className="bg-white border-b border-gray-200 sticky top-0 z-40 shadow-sm rounded-b-2xl relative">
-            <div className="max-w-7xl mx-auto px-2 sm:px-4 lg:px-8">
-              <div className="flex justify-between items-center py-4 sm:py-6">
-                <div className="flex items-center">
-                  <div className="w-8 h-8 sm:w-10 sm:h-10 bg-gradient-to-r from-gray-200 to-gray-300 rounded-lg flex items-center justify-center mr-2 sm:mr-3">
-                    <FontAwesomeIcon icon={faHeart} className="text-gray-600 text-base sm:text-lg" />
-                  </div>
-                  <h1 className="text-lg sm:text-2xl font-bold text-gray-800 font-kanit">Nakarin Smn</h1>
-                </div>
-                <div className="flex items-center space-x-2 sm:space-x-4">
-                  <span className="text-xs sm:text-sm text-gray-600 font-kanit">ยินดีต้อนรับ</span>
-                  <div className="w-6 h-6 sm:w-8 sm:h-8 bg-gray-400 rounded-full flex items-center justify-center">
-                    <FontAwesomeIcon icon={faCheckCircle} className="text-white text-xs sm:text-sm" />
-                  </div>
-                </div>
-              </div>
+        <div className="w-full max-w-md mx-auto px-2 sm:px-4 pb-10 pt-10 flex flex-col items-center">
+          <div className="card-neumorph w-full animate-fade-in flex flex-col items-center">
+            <div className="text-center py-8 sm:py-12">
+              <h2 className="text-2xl sm:text-4xl font-bold text-[#2563eb] mb-3 sm:mb-6 font-kanit">
+                Lofi Wallpapers Collection
+              </h2>
+              <p className="text-sm sm:text-xl text-[#3b82f6] font-kanit mb-4 sm:mb-8 max-w-2xl mx-auto">
+                คอลเลกชันภาพพื้นหลังสไตล์ Lofi ที่สวยงามและผ่อนคลาย เลื่อนซ้ายขวาเพื่อดูภาพถัดไป
+              </p>
             </div>
-          </header>
-
-          {/* Hero Section */}
-          <div className="text-center py-8 sm:py-16 px-2 sm:px-4 animate-fade-in">
-            <h2 className="text-2xl sm:text-5xl font-bold text-gray-800 mb-3 sm:mb-6 font-kanit">
-              Lofi Wallpapers Collection
-            </h2>
-            <p className="text-sm sm:text-xl text-gray-600 font-kanit mb-4 sm:mb-8 max-w-2xl mx-auto">
-              คอลเลกชันภาพพื้นหลังสไตล์ Lofi ที่สวยงามและผ่อนคลาย 
-              เลื่อนลงเพื่อดูภาพทั้งหมด
-            </p>
-            <div className="animate-bounce">
-              <FontAwesomeIcon icon={faArrowDown} className="text-gray-400 text-lg sm:text-2xl" />
-            </div>
-          </div>
-
-          {/* Gallery Grid */}
-          <div className="max-w-7xl mx-auto px-2 sm:px-4 lg:px-8 pb-10 sm:pb-20">
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 sm:gap-8">
-              {lofiImages.map((image, index) => (
-                <div
-                  key={image.id}
-                  data-id={image.id}
-                  className={`transform transition-all duration-1000 ease-out animate-fade-in ${
-                    visibleImages.has(image.id)
-                      ? 'translate-x-0 opacity-100 scale-100'
-                      : image.direction === 'left' 
-                        ? '-translate-x-full opacity-0 scale-95' 
-                        : 'translate-x-full opacity-0 scale-95'
-                  }`}
-                  style={{
-                    transitionDelay: `${index * 200}ms`
-                  }}
-                >
-                  <div className="bg-white rounded-2xl overflow-hidden shadow-lg hover:shadow-2xl transition-all duration-300 hover:scale-105 group border border-gray-100 flex flex-col">
-                    <div className="relative h-48 sm:h-64 overflow-hidden bg-blue-100 border-b border-blue-200 flex items-center justify-center">
+            <div className="relative w-full flex flex-col items-center">
+              {/* Stack images */}
+              <div className="relative w-72 h-72 flex items-center justify-center">
+                {lofiImagesStack.map((img, idx) => {
+                  const z = lofiImagesStack.length - Math.abs(idx - currentImage);
+                  const isActive = idx === currentImage;
+                  return (
+                    <div
+                      key={img.src}
+                      className={`absolute left-0 top-0 w-72 h-72 transition-all duration-1000 ease-[cubic-bezier(0.77,0,0.175,1)] ${isActive ? 'scale-100 z-30 opacity-100' : 'scale-90 z-20 opacity-60'} ${Math.abs(idx - currentImage) > 2 ? 'opacity-0' : ''}`}
+                      style={{
+                        transform: `translateX(${(idx - currentImage) * 32}px) scale(${isActive ? 1 : 0.9})`,
+                      }}
+                    >
                       <Image
-                        src={image.src}
-                        alt={image.title}
+                        src={img.src}
+                        alt={img.title}
                         fill
-                        className="absolute inset-0 w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
-                        loading="lazy"
+                        className="object-cover rounded-xl border-4 border-[#e5e7eb] shadow-lg"
                       />
-                      <div className="absolute inset-0 bg-gradient-to-t from-blue-100/50 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
                     </div>
-                    <div className="p-4 sm:p-6 flex-1 flex flex-col justify-between">
-                      <div>
-                        <h3 className="text-base sm:text-xl font-bold text-gray-800 mb-1 sm:mb-2 font-kanit group-hover:text-gray-600 transition-colors duration-300">
-                          {image.title}
-                        </h3>
-                        <p className="text-xs sm:text-base text-gray-600 font-kanit leading-relaxed mb-2 sm:mb-4">
-                          {image.description}
-                        </p>
-                      </div>
-                      <div className="flex items-center space-x-2 mt-auto">
-                        <FontAwesomeIcon icon={faHeart} className="text-gray-400 text-xs sm:text-sm" />
-                        <span className="text-xs sm:text-sm text-gray-500 font-kanit">Lofi Vibes</span>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-
-          {/* Footer */}
-          <footer className="bg-white border-t border-gray-200 rounded-t-2xl">
-            <div className="max-w-7xl mx-auto px-2 sm:px-4 lg:px-8 py-6 sm:py-8">
-              <div className="text-center">
-                <p className="text-xs sm:text-base text-gray-500 font-kanit">
-                  © 2024 Lofi Gallery. สร้างด้วย Next.js และ Tailwind CSS
-                </p>
+                  );
+                })}
+              </div>
+              <div className="w-full flex justify-center mt-10">
+                <input
+                  type="range"
+                  min={0}
+                  max={lofiImagesStack.length - 1}
+                  value={currentImage}
+                  onChange={e => setCurrentImage(Number(e.target.value))}
+                  className="slider-neumorph w-40 md:w-56 h-3"
+                  style={{ accentColor: '#2563eb' }}
+                />
               </div>
             </div>
-          </footer>
+            {/* ข้อมูลรูป */}
+            <div className="mt-4 text-center">
+              <h3 className="text-base sm:text-xl font-bold text-[#2563eb] mb-1 sm:mb-2 font-kanit text-center">
+                {lofiImagesStack[currentImage].title}
+              </h3>
+              <p className="text-xs sm:text-base text-[#3b82f6] font-kanit leading-relaxed mb-2 sm:mb-4 text-center">
+                {lofiImagesStack[currentImage].description}
+              </p>
+            </div>
+          </div>
         </div>
       )}
-    </>
+    </div>
   );
 }
