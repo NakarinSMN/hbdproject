@@ -22,7 +22,7 @@ export default function Home() {
     '/meen01.png',
     '/meen02.png',
     '/meen03.png',
-    '/meen04.png',
+    '/meen04.jpg',
   ];
 
   // Lofi images สำหรับ stack
